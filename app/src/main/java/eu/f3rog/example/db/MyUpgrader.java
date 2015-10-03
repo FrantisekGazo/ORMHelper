@@ -28,7 +28,7 @@ import eu.f3rog.ormhelper.OnUpgrade;
 )
 public class MyUpgrader {
 
-    @OnUpgrade(fromVersion = 1, toVersion = 2)
-    public void to2(SQLiteDatabase database, ConnectionSource connectionSource) {}
+    @OnUpgrade(from = 1, to = 2)
+    public void upgrade1To2(SQLiteDatabase database, ConnectionSource connectionSource) {}
 
 }

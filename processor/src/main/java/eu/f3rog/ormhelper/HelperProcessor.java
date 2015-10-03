@@ -378,13 +378,13 @@ public class HelperProcessor extends AbstractProcessor {
             for (int i = 0; i < onUpgradeMethods.size(); i++) {
                 onUpMethod = onUpgradeMethods.get(i);
                 onUp = onUpMethod.getAnnotation(OnUpgrade.class);
-                if (onUp.fromVersion() == OnUpgrade.UNDEFINED) {
-                    method.beginControlFlow("if (version <= $L)", onUp.toVersion());
+                if (onUp.from() == OnUpgrade.UNDEFINED) {
+                    method.beginControlFlow("if (version <= $L)", onUp.to());
                 } else {
-                    method.beginControlFlow("if (version == $L)", onUp.fromVersion());
+                    method.beginControlFlow("if (version == $L)", onUp.from());
                 }
                 method.addStatement("upgradeHelper.$N(database, connectionSource)", onUpMethod.getSimpleName());
-                method.addStatement("version = $L", onUp.toVersion());
+                method.addStatement("version = $L", onUp.to());
                 method.endControlFlow();
             }
         }

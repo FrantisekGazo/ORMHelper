@@ -17,13 +17,13 @@ public @interface OnUpgrade {
      * Version from which this upgrade should be made.
      * </p>
      */
-    int fromVersion() default UNDEFINED;
+    int from() default UNDEFINED;
 
     /**
      * <p>
      * Version to which this upgrade should be made.
      * </p>
      */
-    int toVersion();
+    int to();
 
 }
