@@ -1,2 +1,1 @@
-# ORMHelper
-# OrmHelper
+# OrmHelper (Helper generator for ORMLite library)
