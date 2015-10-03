@@ -45,7 +45,8 @@ public class MyUpgrader {
 ```
 
 # @OnUpgrade
-This annotation can be used to annotate a method inside class annotated with ``` @Helper ```.
+This annotation can be used to annotate methods inside class annotated with ``` @Helper ```. Annotated method has to have 2 parameters - [SQLiteDatabase](http://developer.android.com/reference/android/database/sqlite/SQLiteDatabase.html) and [ConnectionSource](http://ormlite.com/javadoc/ormlite-android/com/j256/ormlite/android/AndroidConnectionSource.html).
+
 - ``` from ``` = optional field. Number of database version from which database will be upgraded.
 - ``` to ``` = mandatory field. Number of database version to which database will be upgraded.
 
