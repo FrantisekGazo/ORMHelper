@@ -1,5 +1,5 @@
 # OrmHelper 
-Android library for generating [ORMLite](http://ormlite.com/) Helper and ConfiUtil classes.
+Android library for generating [OrmLite](http://ormlite.com/) Helper and ConfiUtil classes.
 This library generates classes during compile-time using Java Annotation Processor. 
 
 Helper classes provide:
