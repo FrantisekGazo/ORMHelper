@@ -1,6 +1,5 @@
 apply plugin: 'java'
-// ./gradlew clean build generateRelease
-apply plugin: 'maven'
+apply plugin: 'com.novoda.bintray-release'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
@@ -22,52 +21,13 @@ dependencies {
     compile 'com.j256.ormlite:ormlite-core:4.48'
 }
 
-def groupId = "eu.f3rog.orm-helper"
-def artifactId = "orm-helper"
-def version = "0.1.0"
-
-def localReleaseDest = "${buildDir}/release/${version}"
-
-task androidJavadocs(type: Javadoc) {
-    source = sourceSets.main.java.srcDirs
-    //classpath += project.files(getBootClasspath().join(File.pathSeparator))
+publish {
+    groupId = LIB_GROUP_ID
+    artifactId = ARTIFACT_ID
+    publishVersion = LIB_VERSION
+    repoName = LIB_REPO_NAME
+    uploadName = ARTIFACT_ID
+    desc = DESC
+    website = LIB_GIT_URL
 }
 
-task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-    classifier = 'javadoc'
-    from androidJavadocs.destinationDir
-}
-
-task androidSourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.java.srcDirs
-}
-
-uploadArchives {
-    repositories.mavenDeployer {
-        pom.groupId = groupId
-        pom.artifactId = artifactId
-        pom.version = version
-        // Add other pom properties here if you want (developer details / licenses)
-        repository(url: "file://${localReleaseDest}")
-    }
-}
-
-task zipRelease(type: Zip) {
-    from localReleaseDest
-    destinationDir buildDir
-    archiveName "release-${version}.zip"
-}
-
-task generateRelease << {
-    println "Release ${version} can be found at ${localReleaseDest}/"
-    println "Release ${version} zipped can be found ${buildDir}/release-${version}.zip"
-}
-
-generateRelease.dependsOn(uploadArchives)
-generateRelease.dependsOn(zipRelease)
-
-artifacts {
-    archives androidSourcesJar
-    archives androidJavadocsJar
-}
