@@ -12,8 +12,9 @@ publish {
     groupId = LIB_GROUP_ID
     artifactId = ARTIFACT_ID
     publishVersion = LIB_VERSION
+    // bintray
     repoName = LIB_REPO_NAME
-    uploadName = ARTIFACT_ID
+    uploadName = LIB_PACKAGE_NAME
     desc = DESC
     website = LIB_GIT_URL
 }

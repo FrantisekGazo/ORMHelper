@@ -26,6 +26,8 @@ dependencies {
 
     compile 'com.j256.ormlite:ormlite-android:4.48'
 
-    compile project(':api')
-    apt project(':processor')
+    compile 'eu.f3rog.ormlite:ormlite-helper:0.1.0'
+    apt 'eu.f3rog.ormlite:ormlite-helper-compiler:0.1.0'
+    //compile project(':api')
+    //apt project(':processor')
 }

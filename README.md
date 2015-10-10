@@ -1,3 +1,4 @@
+![](website/logo.png)
 # OrmHelper 
 Android library for generating [OrmLite](http://ormlite.com/) Helper and ConfiUtil classes.
 This library generates classes during compile-time using Java Annotation Processor. 
@@ -59,4 +60,29 @@ This annotation can be used to annotate methods inside class annotated with ``` 
         // do something in database
     }
 
+```
+
+# Download
+Via Gradle:
+```Gradle
+compile 'eu.f3rog.ormlite:ormlite-helper:0.1.0'
+apt 'eu.f3rog.ormlite:ormlite-helper-compiler:0.1.0'
+```
+Plus don't forget to include OrmLite library:
+```Gradle
+compile 'com.j256.ormlite:ormlite-android:4.48'
+```
+Or Maven:
+```XML
+<dependency>
+  <groupId>eu.f3rog.ormlite</groupId>
+  <artifactId>ormlite-helper</artifactId>
+  <version>0.1.0</version>
+</dependency>
+<dependency>
+  <groupId>eu.f3rog.ormlite</groupId>
+  <artifactId>ormlite-helper-compiler</artifactId>
+  <version>0.1.0</version>
+  <optional>true</optional>
+</dependency>
 ```
