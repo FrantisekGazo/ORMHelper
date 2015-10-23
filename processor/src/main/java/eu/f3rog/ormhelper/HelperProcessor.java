@@ -40,6 +40,11 @@ import javax.tools.Diagnostic;
 @AutoService(Processor.class)
 public class HelperProcessor extends AbstractProcessor {
 
+    private static class HelperBucket {
+        public List<ExecutableElement> onUpgradeMethods = new ArrayList<>();
+        public ExecutableElement pathMethod = null;
+    }
+
     private static final String GET_DB_CONFIG_FILE_METHOD_NAME = "getDatabaseConfigFile";
     private static final String MAIN_METHOD_NAME = "main";
     private static final String DB_CONFIG_DIR_NAME = "db_config";
@@ -64,6 +69,7 @@ public class HelperProcessor extends AbstractProcessor {
     public Set<String> getSupportedAnnotationTypes() {
         Set<String> annotations = new HashSet<>();
         annotations.add(Helper.class.getCanonicalName());
+        annotations.add(Path.class.getCanonicalName());
         annotations.add(OnUpgrade.class.getCanonicalName());
         annotations.add(DatabaseTable.class.getCanonicalName());
         return annotations;
@@ -71,7 +77,7 @@ public class HelperProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        Map<TypeElement, List<ExecutableElement>> helpers = new HashMap<>();
+        Map<TypeElement, HelperBucket> helpers = new HashMap<>();
 
         // Find all ID classes for db tables
         Set<? extends Element> dbTableClasses = roundEnv.getElementsAnnotatedWith(DatabaseTable.class);
@@ -86,15 +92,31 @@ public class HelperProcessor extends AbstractProcessor {
             if (!checkHelperClass((TypeElement) helperClass)) {
                 return false;
             }
-            helpers.put((TypeElement) helperClass, new ArrayList<ExecutableElement>());
+            helpers.put((TypeElement) helperClass, new HelperBucket());
         }
         helperClasses = null;
+
+        // add Path methods
+        Set<? extends Element> pathMethods = roundEnv.getElementsAnnotatedWith(Path.class);
+        for (Element pathMethod : pathMethods) {
+            HelperBucket helperBucket = helpers.get((TypeElement) pathMethod.getEnclosingElement());
+            if (helperBucket == null) {
+                error(pathMethod, "Method annotated with @%s must be inside class annotated with @%s.",
+                        Path.class.getSimpleName(), Helper.class.getSimpleName());
+                return false;
+            }
+            if (!checkPathMethod((ExecutableElement) pathMethod)) {
+                return false;
+            }
+            helperBucket.pathMethod = (ExecutableElement) pathMethod;
+        }
+        pathMethods = null;
 
         // add onUpgrade methods
         Set<? extends Element> onUpgradeMethods = roundEnv.getElementsAnnotatedWith(OnUpgrade.class);
         for (Element onUpgradeMethod : onUpgradeMethods) {
-            List<ExecutableElement> helperOnUpMethods = helpers.get((TypeElement) onUpgradeMethod.getEnclosingElement());
-            if (helperOnUpMethods == null) {
+            HelperBucket helperBucket = helpers.get((TypeElement) onUpgradeMethod.getEnclosingElement());
+            if (helperBucket == null) {
                 error(onUpgradeMethod, "Method annotated with @%s must be inside class annotated with @%s.",
                         OnUpgrade.class.getSimpleName(), Helper.class.getSimpleName());
                 return false;
@@ -102,12 +124,12 @@ public class HelperProcessor extends AbstractProcessor {
             if (!checkOnUpMethod((ExecutableElement) onUpgradeMethod)) {
                 return false;
             }
-            helperOnUpMethods.add((ExecutableElement) onUpgradeMethod);
+            helperBucket.onUpgradeMethods.add((ExecutableElement) onUpgradeMethod);
         }
         onUpgradeMethods = null;
 
         // generate helper classes
-        for (Map.Entry<TypeElement, List<ExecutableElement>> helper : helpers.entrySet()) {
+        for (Map.Entry<TypeElement, HelperBucket> helper : helpers.entrySet()) {
             generateHelper(helper.getKey(), helper.getValue());
 
             // generate config util class if necessary
@@ -188,20 +210,49 @@ public class HelperProcessor extends AbstractProcessor {
         return true;
     }
 
+    private boolean checkPathMethod(ExecutableElement pathMethod) {
+        // has to be public void
+        if (!pathMethod.getModifiers().contains(Modifier.PUBLIC)
+                || !pathMethod.getModifiers().contains(Modifier.STATIC)) {
+            error(pathMethod, "Method annotated with @%s must be public static method.",
+                    Path.class.getSimpleName());
+            return false;
+        }
+
+        if (!ClassName.get(pathMethod.getReturnType()).equals(ClassName.get(String.class))) {
+            error(pathMethod, "Method annotated with @%s must must return String.",
+                    Path.class.getSimpleName());
+            return false;
+        }
+
+        // has to have 1 parameter
+        List<? extends VariableElement> params = pathMethod.getParameters();
+        if (params.size() != 1) {
+            error(pathMethod, "Method annotated with @%s must have 1 parameter -> (%s context).",
+                    Path.class.getSimpleName(), EClass.Context.getName().simpleName());
+            return false;
+        }
+        // check 1st parameter class
+        if (!ClassName.get(params.get(0).asType()).equals(EClass.Context.getName())) {
+            error(pathMethod, "Method annotated with @%s must have 1st parameter of type %s.",
+                    Path.class.getSimpleName(), EClass.Context.getName().simpleName());
+            return false;
+        }
+
+        return true;
+    }
+
     private boolean checkOnUpMethod(ExecutableElement onUpgradeMethod) {
         // has to be public void
-        for (Modifier modifier : onUpgradeMethod.getModifiers()) {
-            if (modifier.equals(Modifier.STATIC)
-                    || modifier.equals(Modifier.ABSTRACT)
-                    || modifier.equals(Modifier.PRIVATE)
-                    || modifier.equals(Modifier.PROTECTED)) {
-                error(onUpgradeMethod, "Method annotated with @%s must be public non-static method returning void.",
-                        OnUpgrade.class.getSimpleName());
-                return false;
-            }
+        if (!onUpgradeMethod.getModifiers().contains(Modifier.PUBLIC)
+                || onUpgradeMethod.getModifiers().contains(Modifier.ABSTRACT)
+                || onUpgradeMethod.getModifiers().contains(Modifier.STATIC)) {
+            error(onUpgradeMethod, "Method annotated with @%s must be public non-static method returning void.",
+                    OnUpgrade.class.getSimpleName());
+            return false;
         }
         // has to have 2 parameters
-        List<? extends VariableElement> params = ((ExecutableElement) onUpgradeMethod).getParameters();
+        List<? extends VariableElement> params = onUpgradeMethod.getParameters();
         if (params.size() != 2) {
             error(onUpgradeMethod, "Method annotated with @%s must have 2 parameters -> (%s database, %s connectionSource).",
                     OnUpgrade.class.getSimpleName(), EClass.SQLiteDatabase.getName().simpleName(), EClass.ConnectionSource.getName().simpleName());
@@ -223,7 +274,7 @@ public class HelperProcessor extends AbstractProcessor {
         return true;
     }
 
-    private void generateHelper(final TypeElement helperClass, final List<ExecutableElement> onUpgradeMethods) {
+    private void generateHelper(final TypeElement helperClass, final HelperBucket helperBucket) {
         Helper helperAnnotation = helperClass.getAnnotation(Helper.class);
 
         final TypeSpec.Builder helper = TypeSpec.classBuilder(getHelperClassName(helperAnnotation.name()));
@@ -231,7 +282,7 @@ public class HelperProcessor extends AbstractProcessor {
         helper.superclass(EClass.OrmLiteSqliteOpenHelper.getName());
 
         // add constructor
-        helper.addMethod(generateHelperConstructor(helperAnnotation));
+        helper.addMethod(generateHelperConstructor(helperAnnotation, helperBucket.pathMethod));
         // add DAOs
         List<ClassName> tableClassNames = ProcessorUtils.getParamClasses(helperClass, new ProcessorUtils.IGetter<Class<?>[]>() {
             @Override
@@ -246,7 +297,7 @@ public class HelperProcessor extends AbstractProcessor {
         helper.addMethod(generateOnCreateMethod(helperClass, tableClassNames));
         // implement onUpgrade method
         boolean dropOnUp = helperAnnotation.dropOnUpgrade();
-        helper.addMethod(generateOnUpgradeMethod(helperClass, tableClassNames, onUpgradeMethods, dropOnUp));
+        helper.addMethod(generateOnUpgradeMethod(helperClass, tableClassNames, helperBucket.onUpgradeMethods, dropOnUp));
         if (dropOnUp) {
             // implement drop method
             helper.addMethod(generateDropMethod(helperClass, tableClassNames));
@@ -274,17 +325,29 @@ public class HelperProcessor extends AbstractProcessor {
         }
     }
 
-    private MethodSpec generateHelperConstructor(Helper helperAnnotation) {
+    private MethodSpec generateHelperConstructor(Helper helperAnnotation, ExecutableElement pathMethod) {
+
         MethodSpec.Builder method = MethodSpec.constructorBuilder();
         method.addModifiers(Modifier.PUBLIC);
         method.addParameter(EClass.Context.getName(), "context");
-        if (!helperAnnotation.withConfigUtil()) {
-            method.addStatement("super(context, $S, null, $L)",
-                    helperAnnotation.name() + ".db", helperAnnotation.version());
+
+        method.addCode("super(context");
+        // add database name / path
+        if (pathMethod != null) {
+            method.addCode(", $T.$N(context)", ClassName.get(pathMethod.getEnclosingElement().asType()), pathMethod.getSimpleName().toString());
         } else {
-            method.addStatement("super(context, $S, null, $L, $N.$N())",
-                    helperAnnotation.name() + ".db", helperAnnotation.version(), getConfigUtilClassName(helperAnnotation.name()), GET_DB_CONFIG_FILE_METHOD_NAME);
+            method.addCode(", $S", helperAnnotation.name() + ".db");
         }
+        // add null
+        method.addCode(", null");
+        // add db version
+        method.addCode(", $L", helperAnnotation.version());
+        // add config file
+        if (helperAnnotation.withConfigUtil()) {
+            method.addCode(", $N.$N()", getConfigUtilClassName(helperAnnotation.name()), GET_DB_CONFIG_FILE_METHOD_NAME);
+        }
+        method.addCode(");\n");
+
         return method.build();
     }
 
