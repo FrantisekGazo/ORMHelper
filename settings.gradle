@@ -1,1 +1,1 @@
-include ':app', ':api', ':processor'
+include ':ormhelper-sample', ':ormhelper-annotations', ':ormhelper-compiler', ':ormhelper'
