@@ -82,8 +82,8 @@ In annotated method you can find/create directory on internal or external storag
 # Download
 Via Gradle:
 ```Gradle
-compile 'eu.f3rog.ormlite:helper:0.2.0'
-apt 'eu.f3rog.ormlite:helper-compiler:0.2.0'
+compile 'eu.f3rog.ormlite:helper:1.0.0'
+apt 'eu.f3rog.ormlite:helper-compiler:1.0.0'
 ```
 Plus don't forget to include OrmLite library:
 ```Gradle
@@ -94,12 +94,12 @@ Or Maven:
 <dependency>
   <groupId>eu.f3rog.ormlite</groupId>
   <artifactId>helper</artifactId>
-  <version>0.2.0</version>
+  <version>1.0.0</version>
 </dependency>
 <dependency>
   <groupId>eu.f3rog.ormlite</groupId>
   <artifactId>helper-compiler</artifactId>
-  <version>0.2.0</version>
+  <version>1.0.0</version>
   <optional>true</optional>
 </dependency>
 ```
